@@ -61,7 +61,8 @@ public static class ArrayExtensions
         if(withPrefix)
             bufferSize += 2;
 
-        Span<char> buffer = stackalloc char[bufferSize];
+        // large inputs (e.g. a serialized BTC block) would overflow the thread's stack
+        Span<char> buffer = bufferSize <= 1024 ? stackalloc char[bufferSize] : new char[bufferSize];
 
         var offset = 0;
 

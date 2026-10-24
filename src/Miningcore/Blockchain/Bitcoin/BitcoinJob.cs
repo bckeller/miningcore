@@ -484,8 +484,7 @@ public class BitcoinJob
             blockHasher.Digest(headerBytes, blockHash, nTime);
             result.BlockHash = blockHash.ToHexString();
 
-            var blockBytes = SerializeBlock(headerBytes, coinbase);
-            var blockHex = blockBytes.ToHexString();
+            var blockHex = SerializeBlockHex(headerBytes, coinbase);
 
             return (result, blockHex);
         }
@@ -509,10 +508,15 @@ public class BitcoinJob
         }
     }
 
-    protected virtual byte[] SerializeBlock(byte[] header, byte[] coinbase)
+    /// <summary>
+    /// Serializes the solved block straight to hex. The template's transactions are already hex,
+    /// so they are appended as-is instead of being decoded and re-encoded on the block submission path.
+    /// </summary>
+    protected virtual string SerializeBlockHex(byte[] header, byte[] coinbase)
     {
-        var rawTransactionBuffer = BuildRawTransactionBuffer();
         var transactionCount = (uint) BlockTemplate.Transactions.Length + 1; // +1 for prepended coinbase tx
+
+        string prefixHex;
 
         using(var stream = new MemoryStream())
         {
@@ -520,29 +524,33 @@ public class BitcoinJob
 
             bs.ReadWrite(header);
             bs.ReadWriteAsVarInt(ref transactionCount);
-
             bs.ReadWrite(coinbase);
-            bs.ReadWrite(rawTransactionBuffer);
 
-            // POS coins require a zero byte appended to block which the daemon replaces with the signature
-            if(isPoS)
-                bs.ReadWrite((byte) 0);
-
-            // if pool supports MWEB, we have to append the MWEB data to the block
-            // https://github.com/litecoin-project/litecoin/blob/0.21/doc/mweb/mining-changes.md
-            if(coin.HasMWEB)
-            {
-                var separator = new byte[] { 0x01 };
-                var mweb = BlockTemplate.Extra.SafeExtensionDataAs<MwebBlockTemplateExtra>();
-                if (mweb != null && mweb.Mweb != null) {
-                    var mwebRaw = mweb.Mweb.HexToByteArray();
-                    bs.ReadWrite(separator);
-                    bs.ReadWrite(mwebRaw);
-                }
-            }
-
-            return stream.ToArray();
+            prefixHex = stream.ToArray().ToHexString();
         }
+
+        var capacity = prefixHex.Length + BlockTemplate.Transactions.Sum(x => x.Data.Length) + 2;
+        var sb = new StringBuilder(prefixHex, capacity);
+
+        foreach(var tx in BlockTemplate.Transactions)
+            sb.Append(tx.Data.StartsWith("0x") ? tx.Data.AsSpan(2) : tx.Data);
+
+        // POS coins require a zero byte appended to block which the daemon replaces with the signature
+        if(isPoS)
+            sb.Append("00");
+
+        // if pool supports MWEB, we have to append the MWEB data to the block
+        // https://github.com/litecoin-project/litecoin/blob/0.21/doc/mweb/mining-changes.md
+        if(coin.HasMWEB)
+        {
+            var mweb = BlockTemplate.Extra.SafeExtensionDataAs<MwebBlockTemplateExtra>();
+            if (mweb != null && mweb.Mweb != null) {
+                sb.Append("01");
+                sb.Append(mweb.Mweb.StartsWith("0x") ? mweb.Mweb.AsSpan(2) : mweb.Mweb);
+            }
+        }
+
+        return sb.ToString();
     }
 
     protected virtual byte[] BuildRawTransactionBuffer()
