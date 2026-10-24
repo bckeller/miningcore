@@ -258,6 +258,9 @@ public class BitcoinPool : PoolBase
             // update client stats
             context.Stats.ValidShares++;
 
+            if(share.ActualDifficulty > context.BestShareDifficulty)
+                context.BestShareDifficulty = share.ActualDifficulty;
+
             await UpdateVarDiffAsync(connection, false, ct);
         }
 

@@ -427,6 +427,15 @@ Pool Fee:               {(poolConfig.RewardRecipients?.Any() == true ? poolConfi
     public abstract double HashrateFromShares(double shares, double interval);
     public virtual double ShareMultiplier => 1;
 
+    public Dictionary<string, double> GetSessionBestShares(string miner)
+    {
+        return connections.Values
+            .Select(x => x.Context)
+            .Where(x => x is { IsAuthorized: true } && x.Miner == miner)
+            .GroupBy(x => x.Worker ?? string.Empty)
+            .ToDictionary(g => g.Key, g => g.Max(x => x.BestShareDifficulty));
+    }
+
     public virtual async Task RunAsync(CancellationToken ct)
     {
         Contract.RequiresNonNull(poolConfig);

@@ -473,6 +473,7 @@ public class BitcoinJob
             BlockHeight = BlockTemplate.Height,
             NetworkDifficulty = Difficulty,
             Difficulty = stratumDifficulty / shareMultiplier,
+            ActualDifficulty = shareDiff,
         };
 
         if(isBlockCandidate)

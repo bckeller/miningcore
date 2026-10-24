@@ -49,6 +49,12 @@ public class Share
     public double Difficulty { get; set; }
 
     /// <summary>
+    /// Actual difficulty of the submitted hash, in the same units the miner sees (share multiplier applied)
+    /// </summary>
+    [ProtoMember(17)]
+    public double ActualDifficulty { get; set; }
+
+    /// <summary>
     /// Block this share refers to
     /// </summary>
     [ProtoMember(9)]

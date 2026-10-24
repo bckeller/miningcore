@@ -429,6 +429,8 @@ public class PoolApiController : ApiControllerBase
             var totalPendingBlocks = await cf.Run(con => statsRepo.GetMinerTotalPendingBlocksAsync(con, pool.Id, address, ct));
             stats.TotalConfirmedBlocks = totalConfirmedBlocks;
             stats.TotalPendingBlocks = totalPendingBlocks;
+
+            await AddBestSharesAsync(stats, pool.Id, address, ct);
         }
 
         return stats;
@@ -781,6 +783,42 @@ public class PoolApiController : ApiControllerBase
     }
 
     #endregion // Actions
+
+    private async Task AddBestSharesAsync(Responses.MinerStats stats, string poolId, string address, CancellationToken ct)
+    {
+        var allTime = await cf.Run(con => shareRepo.GetMinerBestSharesAsync(con, poolId, address, ct));
+
+        var session = pools.TryGetValue(poolId, out var miningPool) ?
+            miningPool.GetSessionBestShares(address) :
+            new Dictionary<string, double>();
+
+        var workers = new Dictionary<string, WorkerBestShare>();
+
+        foreach(var best in allTime)
+        {
+            workers[best.Worker] = new WorkerBestShare
+            {
+                BestDifficulty = best.Difficulty,
+                BestDifficultyTime = best.Created
+            };
+        }
+
+        foreach(var (worker, difficulty) in session.Where(x => x.Value > 0))
+        {
+            if(!workers.TryGetValue(worker, out var item))
+                workers[worker] = item = new WorkerBestShare();
+
+            item.BestSessionDifficulty = difficulty;
+        }
+
+        var top = allTime.MaxBy(x => x.Difficulty);
+
+        stats.BestDifficulty = top?.Difficulty;
+        stats.BestDifficultyTime = top?.Created;
+        var sessionBest = session.Values.DefaultIfEmpty(0).Max();
+        stats.BestSessionDifficulty = sessionBest > 0 ? sessionBest : null;
+        stats.WorkerBestShares = workers;
+    }
 
     private async Task<Responses.WorkerPerformanceStatsContainer[]> GetMinerPerformanceInternal(
         SampleRange mode, PoolConfig pool, string address, CancellationToken ct)

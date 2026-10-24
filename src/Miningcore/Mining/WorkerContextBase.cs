@@ -34,6 +34,11 @@ public class WorkerContextBase
     public double? PreviousDifficulty { get; set; }
 
     /// <summary>
+    /// Highest actual share difficulty accepted on this connection (session best)
+    /// </summary>
+    public double BestShareDifficulty { get; set; }
+
+    /// <summary>
     /// Usually a wallet address
     /// </summary>
     public virtual string Miner { get; set; }

@@ -19,6 +19,13 @@ public class WorkerPerformanceStatsContainer
     public Dictionary<string, WorkerPerformanceStats> Workers { get; set; }
 }
 
+public class WorkerBestShare
+{
+    public double? BestSessionDifficulty { get; set; }
+    public double? BestDifficulty { get; set; }
+    public DateTime? BestDifficultyTime { get; set; }
+}
+
 public class MinerStats
 {
     public double PendingShares { get; set; }
@@ -32,4 +39,16 @@ public class MinerStats
     public WorkerPerformanceStatsContainer[] PerformanceSamples { get; set; }
     public long TotalConfirmedBlocks { get; set; }
     public long TotalPendingBlocks { get; set; }
+
+    /// <summary>
+    /// Best share difficulty across currently connected sessions
+    /// </summary>
+    public double? BestSessionDifficulty { get; set; }
+
+    /// <summary>
+    /// Best share difficulty of all time
+    /// </summary>
+    public double? BestDifficulty { get; set; }
+    public DateTime? BestDifficultyTime { get; set; }
+    public Dictionary<string, WorkerBestShare> WorkerBestShares { get; set; }
 }
