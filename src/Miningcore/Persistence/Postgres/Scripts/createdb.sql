@@ -34,6 +34,8 @@ CREATE TABLE blocks
 	reward decimal(28,12) NULL,
     source TEXT NULL,
     hash TEXT NULL,
+    worker TEXT NULL,
+    difficulty DOUBLE PRECISION NULL,
 	created TIMESTAMPTZ NOT NULL
 );
 
