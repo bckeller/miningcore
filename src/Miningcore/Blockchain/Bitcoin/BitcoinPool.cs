@@ -408,6 +408,10 @@ public class BitcoinPool : PoolBase
 
         logger.Info(() => $"Broadcasting job {((object[]) jobParams)[0]}");
 
+        // session best tracks the current block height: start over on every new network block
+        if((bool) ((object[]) jobParams)[^1])
+            ResetSessionBestShares();
+
         await Guard(() => ForEachMinerAsync(async (connection, ct) =>
         {
             var context = connection.ContextAs<BitcoinWorkerContext>();

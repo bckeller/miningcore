@@ -436,6 +436,16 @@ Pool Fee:               {(poolConfig.RewardRecipients?.Any() == true ? poolConfi
             .ToDictionary(g => g.Key, g => g.Max(x => x.BestShareDifficulty));
     }
 
+    /// <summary>
+    /// Resets the session best share of every connected worker, so that the
+    /// session best only covers the current block height
+    /// </summary>
+    protected void ResetSessionBestShares()
+    {
+        foreach(var context in connections.Values.Select(x => x.Context).Where(x => x != null))
+            context.BestShareDifficulty = 0;
+    }
+
     public virtual async Task RunAsync(CancellationToken ct)
     {
         Contract.RequiresNonNull(poolConfig);
