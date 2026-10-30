@@ -258,6 +258,9 @@ public class BitcoinPool : PoolBase
             // update client stats
             context.Stats.ValidShares++;
 
+            if(share.ActualDifficulty > context.BestShareDifficulty)
+                context.BestShareDifficulty = share.ActualDifficulty;
+
             await UpdateVarDiffAsync(connection, false, ct);
         }
 
@@ -404,6 +407,10 @@ public class BitcoinPool : PoolBase
         currentJobParams = jobParams;
 
         logger.Info(() => $"Broadcasting job {((object[]) jobParams)[0]}");
+
+        // session best tracks the current block height: start over on every new network block
+        if((bool) ((object[]) jobParams)[^1])
+            ResetSessionBestShares();
 
         await Guard(() => ForEachMinerAsync(async (connection, ct) =>
         {

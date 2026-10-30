@@ -98,6 +98,22 @@ public class BitcoinJobManager : BitcoinJobManagerBase<BitcoinJob>
         return result;
     }
 
+    private async Task<bool> HasChainTipChangedAsync(CancellationToken ct)
+    {
+        var previousBlockHash = currentJob?.BlockTemplate?.PreviousBlockhash;
+
+        if(previousBlockHash == null)
+            return true;
+
+        var response = await rpc.ExecuteAsync<string>(logger, BitcoinCommands.GetBestBlockHash, ct);
+
+        // on any error fall back to fetching the full template
+        if(response.Error != null || string.IsNullOrEmpty(response.Response))
+            return true;
+
+        return !string.Equals(response.Response, previousBlockHash, StringComparison.OrdinalIgnoreCase);
+    }
+
     protected RpcResponse<BlockTemplate> GetBlockTemplateFromJson(string json)
     {
         var result = JsonConvert.DeserializeObject<JsonRpcResponse>(json);
@@ -133,6 +149,10 @@ public class BitcoinJobManager : BitcoinJobManagerBase<BitcoinJob>
         {
             if(forceUpdate)
                 lastJobRebroadcast = clock.Now;
+
+            // a plain poll only matters if the chain tip moved, so check that before fetching the (potentially huge) template
+            if(!forceUpdate && via == JobRefreshBy.Poll && string.IsNullOrEmpty(json) && !await HasChainTipChangedAsync(ct))
+                return (false, false);
 
             var response = string.IsNullOrEmpty(json) ?
                 await GetBlockTemplateAsync(ct) :

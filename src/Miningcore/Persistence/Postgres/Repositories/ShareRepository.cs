@@ -157,4 +157,23 @@ public class ShareRepository : IShareRepository
         return (await con.QueryAsync<string>(new CommandDefinition(query, new { poolId, miner }, tx, cancellationToken: ct)))
             .ToArray();
     }
+
+    public Task UpdateBestSharesAsync(IDbConnection con, IDbTransaction tx, IEnumerable<MinerBestShare> bestShares, CancellationToken ct)
+    {
+        const string query = @"INSERT INTO minerbestshares(poolid, miner, worker, difficulty, created)
+            VALUES(@poolId, @miner, @worker, @difficulty, @created)
+            ON CONFLICT (poolid, miner, worker) DO UPDATE
+            SET difficulty = EXCLUDED.difficulty, created = EXCLUDED.created
+            WHERE minerbestshares.difficulty < EXCLUDED.difficulty";
+
+        return con.ExecuteAsync(new CommandDefinition(query, bestShares, tx, cancellationToken: ct));
+    }
+
+    public async Task<MinerBestShare[]> GetMinerBestSharesAsync(IDbConnection con, string poolId, string miner, CancellationToken ct)
+    {
+        const string query = "SELECT * FROM minerbestshares WHERE poolid = @poolId AND miner = @miner";
+
+        return (await con.QueryAsync<MinerBestShare>(new CommandDefinition(query, new { poolId, miner }, cancellationToken: ct)))
+            .ToArray();
+    }
 }

@@ -11,5 +11,10 @@ public interface IMiningPool
     double ShareMultiplier { get; }
     void Configure(PoolConfig pc, ClusterConfig cc);
     double HashrateFromShares(double shares, double interval);
+
+    /// <summary>
+    /// Best share difficulty per worker across the miner's currently connected sessions
+    /// </summary>
+    Dictionary<string, double> GetSessionBestShares(string miner);
     Task RunAsync(CancellationToken ct);
 }

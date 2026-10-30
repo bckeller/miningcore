@@ -26,6 +26,7 @@
 // 
 
 #pragma once
+#include <stdint.h>
 
 #include <boost/mpl/vector.hpp>
 #include <boost/mpl/contains.hpp>

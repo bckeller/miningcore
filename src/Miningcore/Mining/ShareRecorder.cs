@@ -90,6 +90,24 @@ public class ShareRecorder : BackgroundService
             var mapped = shares.Select(mapper.Map<Persistence.Model.Share>).ToArray();
             await shareRepo.BatchInsertAsync(con, tx, mapped, CancellationToken.None);
 
+            // Update all-time best shares
+            var bestShares = shares
+                .Where(x => x.ActualDifficulty > 0)
+                .GroupBy(x => (x.PoolId, x.Miner, Worker: x.Worker ?? string.Empty))
+                .Select(g => g.MaxBy(x => x.ActualDifficulty))
+                .Select(x => new MinerBestShare
+                {
+                    PoolId = x.PoolId,
+                    Miner = x.Miner,
+                    Worker = x.Worker ?? string.Empty,
+                    Difficulty = x.ActualDifficulty,
+                    Created = x.Created
+                })
+                .ToArray();
+
+            if(bestShares.Length > 0)
+                await shareRepo.UpdateBestSharesAsync(con, tx, bestShares, CancellationToken.None);
+
             // Insert blocks
             foreach(var share in shares)
             {
